@@ -160,11 +160,11 @@ def cyclic_descent(adaptive=True):
     Return:
         ris_loc, user_slots, ris_coeff
     """
-    lr, tole, smooth = 0.1, 10**(-2), 10**(-8)
+    lr, tole, smooth = 1, 10**(-2), 10**(-8)
 
     ris_loc = ris_center
     user_slots = np.ones(user_locs.shape[0])/user_locs.shape[0]
-    ris_coeff = np.exp(1j*np.zeros((user_locs.shape[0], np.prod(ris_dims))))
+    ris_coeff = np.exp(1j*np.random.uniform(0, 2*np.pi, (user_locs.shape[0], np.prod(ris_dims))))
 
     sum_gd2_loc = np.zeros(3)
     sum_gd2_slots = np.zeros(user_locs.shape[0])
@@ -214,6 +214,7 @@ def cyclic_descent(adaptive=True):
             ris_loc = ris_loc_next
             user_slots = user_slots_next
             ris_coeff = ris_coeff_next
+            print(f"\nfinal capacity upper bound {cap_ub(ris_loc, user_slots, ris_coeff)}")
             break
 
         ris_loc = ris_loc_next
@@ -309,7 +310,7 @@ def plot_user_loc():
 
 if __name__=='__main__':
     user_locs = gen_user_loc(seed=2021)
-    plot_user_loc()
+    # plot_user_loc()
     ris_dims = (10, 5)
     
     ris_loc, user_slots, ris_coeff = cyclic_descent()
