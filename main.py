@@ -6,7 +6,7 @@ bs_loc = np.array([0, 0, 30])
 radius = 10
 user_center = np.array([0, 50, 0])
 rect_length, rect_width = 40, 40
-ris_center = np.array([-15, 50, 30])
+ris_center = np.array([-15, 50, 25])
 power = 10**(20 / 10)
 path_loss0 = 10**(-30 / 10)
 beta_h, beta_f, beta_g = path_loss0, path_loss0, path_loss0
@@ -156,8 +156,11 @@ def proj_ris_coeff(coeff):
 
 def cyclic_descent(adaptive=True):
     """Coordinate descent algoritm by adaptive steps.
+
+    Return:
+        ris_loc, user_slots, ris_coeff
     """
-    lr, tole, smooth = 0.01, 10**(-2), 10**(-8)
+    lr, tole, smooth = 0.1, 10**(-2), 10**(-8)
 
     ris_loc = ris_center
     user_slots = np.ones(user_locs.shape[0])/user_locs.shape[0]
@@ -201,7 +204,7 @@ def cyclic_descent(adaptive=True):
             else:
                 direct = proj_ris_coeff(ris_coeff[idx] + deriv) - ris_coeff[idx]
             ris_coeff_next[idx] = ris_coeff[idx] + \
-                direct*backtrack(lambda x: cap_ub(ris_loc_next, user_slots_next, np.stack((ris_coeff_next[:idx], x, ris_coeff[idx+1:]))),
+                direct*backtrack(lambda x: cap_ub(ris_loc_next, user_slots_next, np.concatenate((ris_coeff_next[:idx], x[np.newaxis], ris_coeff[idx+1:]), axis=0)),
                     deriv, ris_coeff[idx], direct)
         
         t += 1
@@ -271,14 +274,14 @@ def deriv_ris_loc(ris_loc, ris_coeff, user_slots):
             channel_f_bar(ris_loc)*coeff)  ## scaler
         term_deriv = np.sum(coeff[np.newaxis, :]*g_f_deriv, axis=1)
         res = np.conj(term_deriv)*term + np.conj(term)*term_deriv
-        return np.array([0, res[0], res[1]])
+        return np.array([0, res[0].real, res[1].real])
 
     const4 = np.prod(ris_dims)*const3
     res = np.zeros(3)
     for user_id, user_loc in enumerate(user_locs):
         abs2_term = np.abs(np.sum(channel_gH_bar(user_loc, ris_loc)*
             channel_f_bar(ris_loc)*ris_coeff[user_id]))**2
-        res += user_slots[user_id] / (np.log(2)*log_real_part(user_loc, ris_loc, ris_coeff[user_id])) * const2\
+        res += user_slots[user_id] / (np.log(2)*log_real_part(user_loc, ris_loc, ris_coeff[user_id])) * const2 *\
             (
             (-gamma_f)*ris_bs_dist(ris_loc)**(-gamma_f-1)*ris_bs_deriv(ris_loc)*user_ris_dist(user_loc, ris_loc)**(-gamma_g)*(const4+abs2_term) +
             (-gamma_g)*user_ris_dist(user_loc, ris_loc)**(-gamma_g-1)*user_ris_deriv(user_loc, ris_loc)*ris_bs_dist(ris_loc)**(-gamma_f)*(const4 + abs2_term) +
@@ -300,7 +303,16 @@ def deriv_ris_coeff(user_loc, ris_loc, coeff, slot):
             np.conj(term)*np.sum(term*coeff)
     return res
 
+def plot_user_loc():
+    plt.plot(user_locs[:, 0], user_locs[:, 1], 'o')
+    plt.show()
+
 if __name__=='__main__':
-    user_locs = np.zeros((3,4))
-    ris_dims = (4, 6)
-    pass
+    user_locs = gen_user_loc(seed=2021)
+    plot_user_loc()
+    ris_dims = (10, 5)
+    
+    ris_loc, user_slots, ris_coeff = cyclic_descent()
+    print(f"ris final location:\n{ris_loc}\nusers time slots:\n{user_slots}\n\
+        ris reflective coefficients:\nmax {np.amax(np.abs(ris_coeff))} min {np.amin(np.abs(ris_coeff))}")
+        
