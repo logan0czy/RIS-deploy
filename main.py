@@ -1,16 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 
 bs_loc = np.array([0, 0, 30])
 radius = 10
-user_center = np.array([0, 50, 0])
-rect_length, rect_width = 40, 40
-ris_center = np.array([-15, 50, 25])
+user_center = np.array([0, 40, 0])
+rect_length, rect_width = 40, 30
+ris_center = np.array([-12, 40, 20])
 power = 10**(20 / 10)
 path_loss0 = 10**(-30 / 10)
 beta_h, beta_f, beta_g = path_loss0, path_loss0, path_loss0
-gamma_h, gamma_f, gamma_g = 3, 2, 2
+gamma_h, gamma_f, gamma_g = 3.5, 2, 2.5
 sigma2_h, sigma2_f, sigma2_g = 1, 1, 1
 rice_f, rice_g = 10, 10
 noise = 10**(-110 / 10)
@@ -132,6 +133,8 @@ def backtrack(func, deriv, x, direct):
     
     while func(x+alpha*direct) < func(x)+zeta*alpha*np.sum(deriv*direct):
         alpha *= rho
+        if alpha <= 0.01:
+            break
     return alpha
 
 def proj_ris_loc(ris_loc):
@@ -162,15 +165,17 @@ def cyclic_descent(adaptive=True):
     """
     lr, tole, smooth = 1, 10**(-2), 10**(-8)
 
-    ris_loc = ris_center
+    ris_loc = ris_center + np.array([0, rect_length/2, rect_width/2])
     user_slots = np.ones(user_locs.shape[0])/user_locs.shape[0]
     ris_coeff = np.exp(1j*np.random.uniform(0, 2*np.pi, (user_locs.shape[0], np.prod(ris_dims))))
+    print(f"\ninitial capacity upper bound {cap_ub(ris_loc, user_slots, ris_coeff)}\n")
 
     sum_gd2_loc = np.zeros(3)
     sum_gd2_slots = np.zeros(user_locs.shape[0])
     sum_gd2_coeff = [np.zeros(np.prod(ris_dims)) for _ in range(user_locs.shape[0])]
     
     print("solver start...")
+    start_time = time.time()
     t = 1
     while True:
         # ris location
@@ -221,7 +226,8 @@ def cyclic_descent(adaptive=True):
         user_slots = user_slots_next
         ris_coeff = ris_coeff_next
         if t%5==0:
-            print(f"step {t}, current capacity upper bound {cap_ub(ris_loc, user_slots, ris_coeff)}")
+            print(f"step {t}, current cap_ub {cap_ub(ris_loc, user_slots, ris_coeff)}, time: {timeCount(time.time(), start_time)[0]}")
+
     return ris_loc, user_slots, ris_coeff
 
 def deriv_ris_loc(ris_loc, ris_coeff, user_slots):
@@ -308,10 +314,31 @@ def plot_user_loc():
     plt.plot(user_locs[:, 0], user_locs[:, 1], 'o')
     plt.show()
 
+def timeCount(cur_time, start_time):
+    """
+    Calculate elapsed time.
+
+    Returns:
+        format_t (string): Elapsed time in format "D/H/M"
+
+        abs_t (float): Elapsed time in seconds
+    """
+    abs_t = cur_time - start_time
+
+    temp = abs_t
+    d_unit, h_unit, m_unit = 24*3600, 3600, 60
+    days = int(temp//d_unit)
+    temp -= days*d_unit
+    hours = int(temp//h_unit)
+    temp -= hours*h_unit
+    mins = int(temp//m_unit) 
+    format_t = ":".join([str(days), str(hours), str(mins)])
+    return format_t, abs_t
+
 if __name__=='__main__':
     user_locs = gen_user_loc(seed=2021)
     # plot_user_loc()
-    ris_dims = (10, 5)
+    ris_dims = (20, 10)
     
     ris_loc, user_slots, ris_coeff = cyclic_descent()
     print(f"ris final location:\n{ris_loc}\nusers time slots:\n{user_slots}\n\
