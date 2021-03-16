@@ -215,7 +215,7 @@ def cyclic_descent(adaptive=True):
         t += 1
         var = np.concatenate((ris_loc, user_slots, ris_coeff.reshape(-1)))
         var_next = np.concatenate((ris_loc_next, user_slots_next, ris_coeff_next.reshape(-1)))
-        if np.linalg.norm(var_next - var) <= tole:
+        if np.linalg.norm(var_next - var) <= tole or t>1000:
             ris_loc = ris_loc_next
             user_slots = user_slots_next
             ris_coeff = ris_coeff_next
@@ -225,7 +225,8 @@ def cyclic_descent(adaptive=True):
         ris_loc = ris_loc_next
         user_slots = user_slots_next
         ris_coeff = ris_coeff_next
-        if t%5==0:
+
+        if t%10==0:
             print(f"step {t}, current cap_ub {cap_ub(ris_loc, user_slots, ris_coeff)}, time: {timeCount(time.time(), start_time)[0]}")
 
     return ris_loc, user_slots, ris_coeff
@@ -338,7 +339,7 @@ def timeCount(cur_time, start_time):
 if __name__=='__main__':
     user_locs = gen_user_loc(seed=2021)
     # plot_user_loc()
-    ris_dims = (20, 10)
+    ris_dims = (10, 10)
     
     ris_loc, user_slots, ris_coeff = cyclic_descent()
     print(f"ris final location:\n{ris_loc}\nusers time slots:\n{user_slots}\n\
