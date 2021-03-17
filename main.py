@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import seaborn as sns
 
 
 bs_loc = np.array([0, 0, 30])
@@ -31,7 +32,8 @@ def gen_user_loc(nums=10, max_radius=radius, seed=None):
 
     user_locs = np.zeros((nums, 3))
     radius = np.random.uniform(0, max_radius, nums)
-    theta = np.random.uniform(0, 2*np.pi, nums)
+    theta = np.concatenate([np.random.uniform(0, 0.5*np.pi, (nums-4)//2), \
+        np.random.uniform(np.pi, 1.5*np.pi, (nums-4)//2), np.random.uniform(0, 2*np.pi, 4) ])
     user_locs[:, 0] = radius * np.sin(theta)
     user_locs[:, 1] = radius * np.cos(theta)
     user_locs = user_locs + user_center[np.newaxis, :]
@@ -312,7 +314,11 @@ def deriv_ris_coeff(user_loc, ris_loc, coeff, slot):
     return res
 
 def plot_user_loc():
-    plt.plot(user_locs[:, 0], user_locs[:, 1], 'o')
+    fig = plt.figure(figsize=(6, 6))
+    ax = plt.gca()
+    theta = np.linspace(0, 2*np.pi, 100)
+    ax.plot(user_center[1]+radius*np.cos(theta), user_center[0]+radius*np.sin(theta), 'y:')
+    ax.plot(user_locs[:, 1], user_locs[:, 0], 'bo')
     plt.show()
 
 def timeCount(cur_time, start_time):
@@ -337,9 +343,12 @@ def timeCount(cur_time, start_time):
     return format_t, abs_t
 
 if __name__=='__main__':
+    sns.set_theme(context='paper', style='whitegrid', palette='bright', font_scale=1.2)
+
     user_locs = gen_user_loc(seed=2021)
     # plot_user_loc()
-    ris_dims = (10, 10)
+    # exit()
+    ris_dims = (10, 5)
     
     ris_loc, user_slots, ris_coeff = cyclic_descent()
     print(f"ris final location:\n{ris_loc}\nusers time slots:\n{user_slots}\n\
